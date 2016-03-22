@@ -11,6 +11,7 @@ const actionMap = {
   push: actionTypes.ROUTER_PUSH,
   replace: actionTypes.ROUTER_REPLACE,
   reset: actionTypes.ROUTER_RESET,
+  modal: actionTypes.ROUTER_MODAL,
 };
 
 class Schema extends React.Component {
@@ -58,6 +59,11 @@ class Router extends React.Component {
         layout: 'flex',
         sceneConfig: Animations.FlatFloatFromRight,
       },
+      modal: {
+        actions: props.actions,
+        layout: 'flex',
+        sceneConfig: Animations.FlatFloatFromBottom,
+      },
     };
     this.schemas.tabs = Object.assign({}, this.schemas.default);
 
@@ -67,75 +73,90 @@ class Router extends React.Component {
     React.Children.forEach(props.children, (child, index) => {
       var name = child.props.name;
 
-      if (child.type.prototype.className() == 'Schema') {
-        this.schemas[name] = Object.assign({}, this.schemas[name], child.props);
-        if (name === 'default') {
-          this.schemas.tabs = Object.assign({}, this.schemas.tabs, {
-            footer: child.props.tabBar,
-          });
-
-          Object.keys(this.schemas).forEach(key => {
-            this.schemas[key] = Object.assign(
-              {}, this.schemas.default, this.schemas[key]);
-          });
-        }
-      } else if (child.type.prototype.className() == 'TabRoute') {
-        const tabBarName = child.props.name;
-        this.routes[tabBarName] = {};
-        this.tabStyles[tabBarName] = {
-          barTint: child.props.barTint,
-          tint: child.props.tint,
-        };
-        actions.routes[tabBarName] = {};
-        React.Children.forEach(child.props.children, (tabChild, tabIndex) => {
-          const tabName = tabChild.props.name;
-          this.routes[tabBarName][tabName] = tabChild.props;
-          this.routes[tabName] = tabChild.props;
-          if (tabChild.props.initial || !this.initial.name) {
-            this.initial.name = tabName;
-            this.initial.tabBarName = tabBarName;
-          }
-          if (props.initial === tabName) {
-            this.initial.tabBarName = tabBarName;
-          }
-          actions.routes[tabBarName][tabName] = (data = {}) => e => {
-            if (typeof(data) !== 'object') {
-              data = { data }
-            }
-
-            dispatch({
-              type: actionMap[data.type || tabChild.props.type] || 'ROUTER_PUSH',
-              payload: { name: tabName, tabBarName, data }
-            });
-          };
+    if (child.type.prototype.className() == 'Schema') {
+      this.schemas[name] = Object.assign({}, this.schemas[name], child.props);
+      if (name === 'default') {
+        this.schemas.tabs = Object.assign({}, this.schemas.tabs, {
+          footer: child.props.tabBar,
         });
-      } else if (child.type.prototype.className() == 'Route') {
-        if (child.props.initial || !this.initial.name) {
-          this.initial.name = name;
-        }
 
-        actions.routes[name] = (data = {}) => e => {
-          if (typeof(data) !== 'object') {
-            data = { data }
-          }
+        Object.keys(this.schemas).forEach(key => {
+          this.schemas[key] = Object.assign(
+            {}, this.schemas.default, this.schemas[key]);
+      });
+      }else if(name === 'modal') {
+        this.schemas.tabs = Object.assign({}, this.schemas.tabs, {
+          footer: child.props.tabBar,
+        });
 
-          dispatch({
-            type: actionMap[data.type || child.props.type] || 'ROUTER_PUSH',
-            payload: { name, data },
-          });
-        };
-
-        this.routes[name] = child.props;
-
-        if (!child.props.component && !child.props.children) {
-          console.error('No route component is defined for name: ' + name);
-          return;
-        }
+        Object.keys(this.schemas).forEach(key => {
+          this.schemas[key] = Object.assign(
+            {}, this.schemas.modal, this.schemas[key]);
+      });
       }
+    } else if (child.type.prototype.className() == 'TabRoute') {
+      const tabBarName = child.props.name;
+      this.routes[tabBarName] = {};
+      this.tabStyles[tabBarName] = {
+        barTint: child.props.barTint,
+        tint: child.props.tint,
+      };
+      actions.routes[tabBarName] = {};
+      React.Children.forEach(child.props.children, (tabChild, tabIndex) => {
+        const tabName = tabChild.props.name;
+      this.routes[tabBarName][tabName] = tabChild.props;
+      this.routes[tabName] = tabChild.props;
+      if (tabChild.props.initial || !this.initial.name) {
+        this.initial.name = tabName;
+        this.initial.tabBarName = tabBarName;
+      }
+      if (props.initial === tabName) {
+        this.initial.tabBarName = tabBarName;
+      }
+      actions.routes[tabBarName][tabName] = (data = {}) => e => {
+        if (typeof(data) !== 'object') {
+          data = { data }
+        }
+        console.log('action_data_tabroute')
+        console.log(data)
+        dispatch({
+          type: actionMap[data.type || tabChild.props.type] || 'ROUTER_PUSH',
+          payload: { name: tabName, tabBarName, data }
+        });
+      };
     });
+    } else if (child.type.prototype.className() == 'Route') {
+      if (child.props.initial || !this.initial.name) {
+        this.initial.name = name;
+      }
+
+      actions.routes[name] = (data = {}) => e => {
+        if (typeof(data) !== 'object') {
+          data = { data }
+        }
+        console.log('action_data_route')
+        console.log(data)
+        console.log(child.props.type)
+        console.log(e)
+        console.log(name)
+        console.log(this.routes[name].schema)
+        dispatch({
+          type: actionMap[data.type || child.props.type] ||'ROUTER_MODAL' || 'ROUTER_PUSH',
+          payload: { name, data },
+        });
+      };
+
+      this.routes[name] = child.props;
+
+      if (!child.props.component && !child.props.children) {
+        console.error('No route component is defined for name: ' + name);
+        return;
+      }
+    }
+  });
 
     this.initialRoute = this.routes[this.initial.name]
-      || console.error('No initial route ' + this.initial.name);
+        || console.error('No initial route ' + this.initial.name);
   }
 
   componentDidMount() {
@@ -144,7 +165,7 @@ class Router extends React.Component {
 
   componentWillReceiveProps(nextProps) {
     const routeKey = router => (
-      '' + router.activeTabBar + router.activeTab + router.currentRoute
+        '' + router.activeTabBar + router.activeTab + router.currentRoute
     );
 
     if (routeKey(this.props.router) !== routeKey(nextProps.router)) {
@@ -164,8 +185,8 @@ class Router extends React.Component {
     }
 
     const currentRoute = this.getRoute(
-      this.routes[this.props.router.currentRoute],
-      this.props.router);
+        this.routes[this.props.router.currentRoute],
+        this.props.router);
 
     let footer = currentRoute.footer;
     if (footer) {
@@ -175,16 +196,16 @@ class Router extends React.Component {
     }
 
     return (
-      <View style={styles.transparent}>
-        <Navigator
-          configureScene={(route) => route.sceneConfig}
-          initialRoute={this.getRoute(this.initialRoute, this.props.router)}
-          ref={(nav) => this.nav = nav}
-          renderScene={this.renderScene.bind(this)}
-        />
-        {footer}
-      </View>
-    );
+        <View style={styles.transparent}>
+  <Navigator
+    configureScene={(route) => route.sceneConfig}
+    initialRoute={this.getRoute(this.initialRoute, this.props.router)}
+    ref={(nav) => this.nav = nav}
+    renderScene={this.renderScene.bind(this)}
+  />
+    {footer}
+  </View>
+  );
   }
 
   renderScene(route, navigator) {
@@ -206,12 +227,12 @@ class Router extends React.Component {
     var child = null;
     if (Component) {
       child = (
-        <Component
-          key={route.name}
-          {...props}
-          {...route.passProps}
-          />
-      );
+          <Component
+      key={route.name}
+      {...props}
+      {...route.passProps}
+    />
+    );
     } else {
       child = React.Children.only(this.routes[route.name].children);
       child = React.cloneElement(child, {schemas: this.schemas});
@@ -221,18 +242,18 @@ class Router extends React.Component {
 
     if (layout === 'flex') {
       return (
-        <View style={styles.transparent}>
-          {navBar}
-          {child}
-        </View>
-      );
+          <View style={styles.transparent}>
+      {navBar}
+      {child}
+    </View>
+    );
     } else if (layout === 'absolute') {
       return (
-        <View style={styles.transparent}>
-          {child}
-          {navBar}
-        </View>
-      );
+          <View style={styles.transparent}>
+      {child}
+      {navBar}
+    </View>
+    );
     } else {
       return console.error('Layout should be flex or absolute.');
     }
@@ -244,35 +265,40 @@ class Router extends React.Component {
     if (!routeProps) {
       return {};
     }
-
+    console.log('getroute_schema')
+    console.log(routeProps.schema)
     var schema = this.schemas[routeProps.schema || 'default'] || {};
-
-    if (router.activeTabBar && this.schemas.tabs) {
+    var temp_sceneConfig = schema.sceneConfig
+    console.log(schema)
+    if (router.activeTabBar && this.schemas.tabs && !routeProps.schema) {
+      console.log('enter tabs')
       schema = this.schemas.tabs
       var tabs = this.routes[router.activeTabBar];
       var tabStyles = this.tabStyles[router.activeTabBar];
     }
 
-    var sceneConfig = routeProps.sceneConfig || schema.sceneConfig || Animations.None;
+    var sceneConfig = routeProps.sceneConfig ||temp_sceneConfig || schema.sceneConfig || Animations.None;
+    console.log('scene_config')
+    console.log(sceneConfig)
     var NavBar = routeProps.navBar || schema.navBar;
     var Footer = routeProps.footer || schema.footer;
 
     var navBar;
     if (NavBar) {
       navBar = (
-        <NavBar {...schema} {...routeProps} {...data} />
-      );
+          <NavBar {...schema} {...routeProps} {...data} />
+    );
     }
 
     var footer;
     if (Footer){
       footer = (
-        <Footer {...schema} {...routeProps} {...data}
-          activeTab={router.activeTab}
-          tabs={tabs}
-          tabStyles={tabStyles}
+          <Footer {...schema} {...routeProps} {...data}
+      activeTab={router.activeTab}
+      tabs={tabs}
+      tabStyles={tabStyles}
           />
-      );
+    );
     }
 
     return {
@@ -282,7 +308,7 @@ class Router extends React.Component {
       navigationBar: routeProps.hideNavBar ? null : navBar,
       passProps: { routerData: data },
       sceneConfig: { ...sceneConfig },
-    }
+  }
   }
 
   handleRouteChange(router) {
@@ -295,8 +321,8 @@ class Router extends React.Component {
         routes = router.routeStacks[router.activeTabBar][router.activeTab];
       } else {
         routes = router.routes.map(route => (
-          this.getRoute(this.routes[route], router)
-        ));
+                this.getRoute(this.routes[route], router)
+            ));
       }
 
       this.nav.immediatelyResetRouteStack(routes);
@@ -314,13 +340,13 @@ class Router extends React.Component {
 
     if (mode === actionTypes.ROUTER_PUSH) {
       this.nav.push(this.getRoute(
-        this.routes[router.currentRoute], router
+          this.routes[router.currentRoute], router
       ));
     }
 
     if (mode === actionTypes.ROUTER_REPLACE) {
       this.nav.replace(this.getRoute(
-        this.routes[router.currentRoute], router
+          this.routes[router.currentRoute], router
       ));
     }
 
@@ -328,6 +354,12 @@ class Router extends React.Component {
       this.nav.immediatelyResetRouteStack([
         this.getRoute(this.routes[router.currentRoute], router)
       ]);
+    }
+
+    if (mode === actionTypes.ROUTER_MODAL) {
+      this.nav.push(this.getRoute(
+          this.routes[router.currentRoute], router
+      ));
     }
   }
 }

@@ -1,12 +1,13 @@
 import { createConstants } from './utils';
 
 export const actionTypes = createConstants(
-  'ROUTER_CHANGE_TAB',
-  'ROUTER_INIT',
-  'ROUTER_POP',
-  'ROUTER_PUSH',
-  'ROUTER_REPLACE',
-  'ROUTER_RESET',
+    'ROUTER_CHANGE_TAB',
+    'ROUTER_INIT',
+    'ROUTER_POP',
+    'ROUTER_PUSH',
+    'ROUTER_REPLACE',
+    'ROUTER_RESET',
+    'ROUTER_MODAL'
 );
 
 const filter = data => {
@@ -67,6 +68,15 @@ export function reset(data) {
 export function replace(data) {
   return {
     type: actionTypes.ROUTER_REPLACE,
+    payload: filter(data),
+  };
+}
+
+export function modal(data) {
+  console.log('modal')
+  console.log('modal_action')
+  return {
+    type: actionTypes.ROUTER_MODAL,
     payload: filter(data),
   };
 }

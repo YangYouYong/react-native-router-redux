@@ -1,6 +1,6 @@
 'use strict';
 
-import React, { Component, StyleSheet } from 'react-native';
+import React, { Component, StyleSheet , PropTypes } from 'react-native';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux/native';
 import {
@@ -9,6 +9,7 @@ import {
   Route,
   Router,
   Schema,
+  Animations,
   TabBar,
   TabRoute
 } from 'react-native-router-redux';
@@ -40,6 +41,18 @@ const defaultSchema = {
   tabBar: TabBar,
 };
 
+const modalSchema = {
+  navBar: NavBar,
+  navLeftColor: '#FFFFFF',
+  navTint: '#224655',
+  navTitleColor: '#FFFFFF',
+  navTitleStyle: {
+    fontFamily: 'Avenir Next',
+    fontSize: 18,
+  },
+  statusStyle: 'light-content',
+  tabBar: TabBar,
+};
 const assets = {
   'calendar': require('../../assets/thin-0021_calendar_month_day_planner.png'),
   'home': require('../../assets/thin-0046_home_house.png'),
@@ -48,14 +61,17 @@ const assets = {
   'video': require('../../assets/thin-0592_tv_televison_movie_news.png'),
 };
 
-class Application extends Component {
+export default class Application extends Component {
   render() {
     return (
       <Router {...this.props} assets={assets} initial="signIn">
         <Schema name="default" {...defaultSchema} />
+        <Schema name="modal" {...modalSchema}/>
+        <Schema name="withoutAnimation" navBar={NavBar}/>
+        <Schema name="tab" navBar={NavBar}/>
 
         <Route name="signIn" component={SignIn} type="reset" hideNavBar={true} />
-        <Route name="detail" component={Detail} />
+        <Route name="detail" component={Detail} schema="modal"/>
         <TabRoute name="tabBar" barTint='#FFFFFF' tint="#32DEAF">
           <Route name="tab1" component={Master('#111')} title="Home" tabItem={{icon: assets['home'], title: 'Home'}} />
           <Route name="tab2" component={Master('#222')} title="Calendar" tabItem={{icon: assets['calendar'], title: 'Calendar'}} />
@@ -67,4 +83,16 @@ class Application extends Component {
   }
 }
 
+Application.propTypes = {
+  router: PropTypes.object.isRequired
+}
+
+//export default connect(state => {
+//  return {
+//    router: state.router
+//}, dispatch => {
+//  return {
+//    actions: bindActionCreators(Object.assign({}, routerActions), dispatch)
+//  }
+//})(Application)
 export default connect(mapStateToProps, mapDispatchToProps)(Application);
